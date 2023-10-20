@@ -39,7 +39,8 @@ fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
     
     if route.starts_with("/echo"){
 
-        let words = route.split("/").collect::<Vec<&str>>()[2];
+        let words = route.split("/echo/").collect::<Vec<&str>>()[1];
+        println!("{:?}",words);
         let echo_response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
 
         stream.write(echo_response.as_bytes())?;
