@@ -3,7 +3,8 @@ use std::net::{TcpListener, TcpStream};
 use std::io::{Read,Write};
 use tokio::task;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
@@ -17,7 +18,7 @@ fn main() {
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                handle_connection(_stream).expect("Failed to handle_connection");
+                handle_connection(_stream).await.expect("Failed to handle_connection");
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -30,7 +31,7 @@ fn main() {
 
 }
 
-fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
+async fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
     let mut buffer: [u8; 128] = [0; 128];
     
     stream.read(&mut buffer)?;
