@@ -18,7 +18,7 @@ async fn main() {
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                handle_connection(_stream).await.expect("Failed to handle_connection");
+                handle_connection(_stream).await;
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -31,10 +31,10 @@ async fn main() {
 
 }
 
-async fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
+async fn handle_connection(mut stream: TcpStream) {
     let mut buffer: [u8; 128] = [0; 128];
     
-    stream.read(&mut buffer)?;
+    stream.read(&mut buffer).unwrap();
     
     let parsed_vec: Vec<&str> = std::str::from_utf8(&buffer).unwrap()
                                     .split("\r\n").collect();
@@ -50,18 +50,34 @@ async fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> 
         let words: String = route.replace("/echo/", "");
         let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
 
-        stream.write(response.as_bytes())?;
+        stream.write(response.as_bytes()).unwrap();
+        
     }else if route.starts_with("/user-agent"){
         let user_agent = parsed_vec[2].replace("User-Agent: ", "");
         let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
 
-        stream.write(response.as_bytes())?;
+        stream.write(response.as_bytes()).unwrap();
+
+    }else if route.starts_with("/files"){
+        let file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files", "");
+
+        if let Ok(mut file) = std::fs::File::open(file_path){
+
+            let mut content = String::new();
+            
+            file.read_to_string(&mut content).unwrap();
+
+            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\n\r\n{0}\r\n",content);
+            stream.write(response.as_bytes()).unwrap();
+
+        }else{
+            stream.write(error_response.as_bytes()).unwrap();
+        };
     }else{
         match route{
-            "/" => stream.write(ok_response.as_bytes())?, 
-            _ => stream.write(error_response.as_bytes())?
+            "/" => stream.write(ok_response.as_bytes()).unwrap(), 
+            _ => stream.write(error_response.as_bytes()).unwrap()
         };
     };
     
-    Ok(())
 }
