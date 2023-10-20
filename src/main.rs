@@ -1,6 +1,7 @@
 // Uncomment this block to pass the first stage
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read,Write};
+use tokio::task;
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -11,6 +12,8 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
     
     for stream in listener.incoming() {
+        task::spawn(async move{
+        
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
@@ -19,8 +22,12 @@ fn main() {
             Err(e) => {
                 println!("error: {}", e);
             }
-        }
-    }
+        };
+    });
+
+
+    };
+
 }
 
 fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
