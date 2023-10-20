@@ -35,10 +35,19 @@ fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
 
     let ok_response: &str = "HTTP/1.1 200 OK\r\n\r\n";
     let error_response: &str = "HTTP/1.1 404 Not Found\r\n\r\n";
+
     
-    match route{
-        "/" => stream.write(ok_response.as_bytes())?, 
-        _ => stream.write(error_response.as_bytes())?
+    if route.starts_with("/echo"){
+
+        let words = route.split("/").collect::<Vec<&str>>()[2];
+        let echo_response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
+
+        stream.write(echo_response.as_bytes())?;
+    }else{
+        match route{
+            "/" => stream.write(ok_response.as_bytes())?, 
+            _ => stream.write(error_response.as_bytes())?
+        };
     };
     
     Ok(())
