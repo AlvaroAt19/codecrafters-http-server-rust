@@ -39,11 +39,15 @@ fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
     
     if route.starts_with("/echo"){
 
-        let words = route.split("/echo/").collect::<Vec<&str>>()[1];
-        println!("{:?}",words);
-        let echo_response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
+        let words: String = route.replace("/echo/", "");
+        let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
 
-        stream.write(echo_response.as_bytes())?;
+        stream.write(response.as_bytes())?;
+    }else if route.starts_with("/user-agent"){
+        let user_agent = parsed_vec[2].replace("User-Agent: ", "");
+        let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
+
+        stream.write(response.as_bytes())?;
     }else{
         match route{
             "/" => stream.write(ok_response.as_bytes())?, 
