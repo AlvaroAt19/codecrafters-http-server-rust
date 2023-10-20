@@ -84,7 +84,7 @@ fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
             
             file.read_to_string(&mut content).unwrap();
 
-            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\n\r\n{0}\r\n",content);
+            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
             stream.write(response.as_bytes()).unwrap();
 
         }else{
