@@ -10,24 +10,24 @@ use clap::Parser;
 struct Args {
     /// Name of the person to greet
     #[arg(short, long)]
-    directory: String,
+    directory: Option<String>,
 
 }
 
 #[tokio::main]
 async fn main() {
 
-    let directory:Arc<String> = Arc::from(Args::parse().directory);
+    let directory:Arc<Option<String>> = Arc::from(Args::parse().directory);
 
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
     // Uncomment this block to pass the first stage
     
-    let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
+    let listener: TcpListener = TcpListener::bind("127.0.0.1:4221").unwrap();
     
     for stream in listener.incoming() {
-        let _directory = Arc::clone(&directory);
+        let _directory: Arc<Option<String>> = Arc::clone(&directory);
 
         task::spawn(async move{
         
@@ -47,7 +47,7 @@ async fn main() {
 
 }
 
-async fn handle_connection(mut stream: TcpStream, directory: Arc<String>) {
+async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
     let mut buffer: [u8; 128] = [0; 128];
     
     stream.read(&mut buffer).unwrap();
@@ -76,7 +76,7 @@ async fn handle_connection(mut stream: TcpStream, directory: Arc<String>) {
 
     }else if route.starts_with("/files"){
         let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files", "");
-        file_path = format!("{}{}",directory, file_path);
+        file_path = format!("{}{}",directory.as_deref().unwrap(), file_path);
 
         if let Ok(mut file) = std::fs::File::open(file_path){
 
