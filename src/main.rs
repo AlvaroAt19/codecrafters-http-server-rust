@@ -1,10 +1,24 @@
 // Uncomment this block to pass the first stage
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read,Write};
+use std::sync::Arc;
 use tokio::task;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[arg(short, long)]
+    directory: String,
+
+}
 
 #[tokio::main]
 async fn main() {
+
+    let directory:Arc<String> = Arc::from(Args::parse().directory);
+
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
@@ -13,12 +27,14 @@ async fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
     
     for stream in listener.incoming() {
+        let _directory = Arc::clone(&directory);
+
         task::spawn(async move{
         
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                handle_connection(_stream).await;
+                handle_connection(_stream,_directory).await;
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -31,7 +47,7 @@ async fn main() {
 
 }
 
-async fn handle_connection(mut stream: TcpStream) {
+async fn handle_connection(mut stream: TcpStream, directory: Arc<String>) {
     let mut buffer: [u8; 128] = [0; 128];
     
     stream.read(&mut buffer).unwrap();
@@ -51,7 +67,7 @@ async fn handle_connection(mut stream: TcpStream) {
         let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
 
         stream.write(response.as_bytes()).unwrap();
-        
+
     }else if route.starts_with("/user-agent"){
         let user_agent = parsed_vec[2].replace("User-Agent: ", "");
         let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
@@ -59,7 +75,8 @@ async fn handle_connection(mut stream: TcpStream) {
         stream.write(response.as_bytes()).unwrap();
 
     }else if route.starts_with("/files"){
-        let file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files", "");
+        let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files", "");
+        file_path = format!("{}{}",directory, file_path);
 
         if let Ok(mut file) = std::fs::File::open(file_path){
 
