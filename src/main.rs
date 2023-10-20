@@ -29,12 +29,12 @@ async fn main() {
     for stream in listener.incoming() {
         let _directory: Arc<Option<String>> = Arc::clone(&directory);
 
-        task::spawn(async move{
+        task::spawn(async{
         
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                handle_connection(_stream,_directory).await;
+                handle_connection(_stream,_directory);
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -47,7 +47,7 @@ async fn main() {
 
 }
 
-async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
+fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
     let mut buffer: [u8; 128] = [0; 128];
     
     stream.read(&mut buffer).unwrap();
@@ -80,7 +80,7 @@ async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>
 
         if let Ok(mut file) = std::fs::File::open(file_path){
 
-            let mut content = String::new();
+            let mut content: String = String::new();
             
             file.read_to_string(&mut content).unwrap();
 
