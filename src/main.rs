@@ -4,6 +4,7 @@ use std::io::{Read,Write};
 use std::sync::Arc;
 use tokio::task;
 use clap::Parser;
+use std::fs::File;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -51,6 +52,16 @@ async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>
     let parsed_vec: Vec<&str> = std::str::from_utf8(&buffer).unwrap()
                                     .split("\r\n").collect();
 
+    match parsed_vec[0].split(" ").collect::<Vec<&str>>()[0]{
+        "GET" => handle_get(stream, directory, parsed_vec).await,
+        "POST" => handle_post(stream, directory, parsed_vec).await,
+        _ => {}
+    }
+    
+}
+
+async fn handle_get(mut stream: TcpStream, directory: Arc<Option<String>>, parsed_vec: Vec<&str>){
+    
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
 
     let ok_response: &str = "HTTP/1.1 200 OK\r\n\r\n";
@@ -77,7 +88,7 @@ async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>
             let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files/", "");
             file_path = format!("{}{}",directory.as_deref().unwrap_or(""), file_path);
             
-                let file = std::fs::File::open(file_path);
+                let file = File::open(file_path);
 
                 match file{
 
@@ -98,5 +109,24 @@ async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>
         "" => {stream.write(ok_response.as_bytes()).unwrap();}, 
         _ => {stream.write(error_response.as_bytes()).unwrap();}
     };
+
+}
+
+async fn handle_post(mut stream: TcpStream, directory: Arc<Option<String>>, parsed_vec: Vec<&str>){
     
+    let response: &str = "HTTP/1.1 201 Created\r\n\r\n";
+
+    let route:&str =  parsed_vec[0].split(" ").collect::<Vec<&str>>()[1];
+    let route = route.replace("/files/", "") ;
+
+    let file_path = format!("{}{}",directory.as_deref().unwrap_or(""), route);
+
+
+    let content = parsed_vec[7];
+    
+    let mut file = File::create(file_path).unwrap();
+    
+    file.write_all(content.as_bytes()).unwrap();
+
+    stream.write(response.as_bytes()).unwrap();
 }
