@@ -32,7 +32,7 @@ async fn main() {
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                task::spawn(async move {handle_connection(_stream,_directory)});
+                task::spawn(async move {handle_connection(_stream,_directory).await});
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -43,7 +43,7 @@ async fn main() {
 
 }
 
-fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
+async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
     let mut buffer: [u8; 256] = [0; 256];
     
     stream.read(&mut buffer).unwrap();
