@@ -121,7 +121,7 @@ async fn handle_post(mut stream: TcpStream, directory: Option<String>, parsed_ve
     let file_path = format!("{}{}",directory.unwrap(), route);
 
 
-    let content = parsed_vec[7];
+    let content = parsed_vec[6];
     
     let mut file = File::create(file_path).unwrap();
     
