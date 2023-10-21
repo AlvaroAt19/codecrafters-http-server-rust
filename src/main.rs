@@ -2,7 +2,7 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read,Write};
 use std::sync::Arc;
-use std::thread;
+use tokio::task;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -32,7 +32,7 @@ async fn main() {
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                thread::spawn(move || {handle_connection(_stream,_directory)});
+                task::spawn(async move {handle_connection(_stream,_directory).await});
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -43,8 +43,8 @@ async fn main() {
 
 }
 
-fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
-    let mut buffer: [u8; 128] = [0; 128];
+async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
+    let mut buffer: [u8; 256] = [0; 256];
     
     stream.read(&mut buffer).unwrap();
     
@@ -56,46 +56,47 @@ fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
     let ok_response: &str = "HTTP/1.1 200 OK\r\n\r\n";
     let error_response: &str = "HTTP/1.1 404 Not Found\r\n\r\n";
 
+    match route.split("/").collect::<Vec<&str>>()[1]{
+        "echo" => {
+
+            let words: String = route.replace("/echo/", "");
+            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
+
+            stream.write(response.as_bytes()).unwrap();
+        },
     
-    if route.starts_with("/echo"){
+        "user-agent" =>{
+            let user_agent = parsed_vec[2].replace("User-Agent: ", "");
+            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
 
-        let words: String = route.replace("/echo/", "");
-        let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
+            stream.write(response.as_bytes()).unwrap();
 
-        stream.write(response.as_bytes()).unwrap();
-
-    }else if route.starts_with("/user-agent"){
-        let user_agent = parsed_vec[2].replace("User-Agent: ", "");
-        let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
-
-        stream.write(response.as_bytes()).unwrap();
-
-    }else if route.starts_with("/files"){
+        },
+        "files" => {
         
-        let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files/", "");
-        file_path = format!("{}{}",directory.as_deref().unwrap_or(""), file_path);
-        
-            let file = std::fs::File::open(file_path);
+            let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files/", "");
+            file_path = format!("{}{}",directory.as_deref().unwrap_or(""), file_path);
+            
+                let file = std::fs::File::open(file_path);
 
-            match file{
+                match file{
 
-                Ok(mut file) => {let mut content: String = String::new();
-                            println!("File");
+                    Ok(mut file) => {
+                                
+                                let mut content: String = String::new();
 
-                            file.read_to_string(&mut content).unwrap();
+                                file.read_to_string(&mut content).unwrap();
 
-                            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
-                            stream.write(response.as_bytes()).unwrap();
-                            }
+                                let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
+                                stream.write(response.as_bytes()).unwrap();
+                                }
 
-                Err(_) => {stream.write(error_response.as_bytes()).unwrap();}
-            };
+                    Err(_) => {stream.write(error_response.as_bytes()).unwrap();}
+                };
 
-    }else{
-        match route{
-            "/" => stream.write(ok_response.as_bytes()).unwrap(), 
-            _ => stream.write(error_response.as_bytes()).unwrap()
-        };
+        },
+        "/" => {stream.write(ok_response.as_bytes()).unwrap();}, 
+        _ => {stream.write(error_response.as_bytes()).unwrap();}
     };
     
 }
