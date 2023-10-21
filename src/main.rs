@@ -17,7 +17,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
 
-    let directory:String = Args::parse().directory.unwrap();
+    let directory:Option<String> = Args::parse().directory;
 
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
@@ -27,7 +27,7 @@ async fn main() {
     let listener: TcpListener = TcpListener::bind("127.0.0.1:4221").unwrap();
     
     for stream in listener.incoming() {
-        let _directory:String = directory.clone();
+        let _directory:Option<String> = directory.clone();
       
         match stream {
             Ok(_stream) => {
@@ -43,7 +43,7 @@ async fn main() {
 
 }
 
-async fn handle_connection(mut stream: TcpStream, directory: String) {
+async fn handle_connection(mut stream: TcpStream, directory: Option<String>) {
     let mut buffer: [u8; 256] = [0; 256];
     
     stream.read(&mut buffer).unwrap();
@@ -59,7 +59,7 @@ async fn handle_connection(mut stream: TcpStream, directory: String) {
     
 }
 
-async fn handle_get(mut stream: TcpStream, directory: String, parsed_vec: Vec<&str>){
+async fn handle_get(mut stream: TcpStream, directory: Option<String>, parsed_vec: Vec<&str>){
     
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
 
@@ -85,7 +85,7 @@ async fn handle_get(mut stream: TcpStream, directory: String, parsed_vec: Vec<&s
         "files" => {
         
             let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files/", "");
-            file_path = format!("{}{}",directory, file_path);
+            file_path = format!("{}{}",directory.unwrap(), file_path);
             
                 let file = File::open(file_path);
 
@@ -111,14 +111,14 @@ async fn handle_get(mut stream: TcpStream, directory: String, parsed_vec: Vec<&s
 
 }
 
-async fn handle_post(mut stream: TcpStream, directory: String, parsed_vec: Vec<&str>){
+async fn handle_post(mut stream: TcpStream, directory: Option<String>, parsed_vec: Vec<&str>){
     
     let response: &str = "HTTP/1.1 201 Created\r\n\r\n";
 
     let route:&str =  parsed_vec[0].split(" ").collect::<Vec<&str>>()[1];
     let route = route.replace("/files/", "") ;
 
-    let file_path = format!("{}{}",directory, route);
+    let file_path = format!("{}{}",directory.unwrap(), route);
 
 
     let content = parsed_vec[7];
