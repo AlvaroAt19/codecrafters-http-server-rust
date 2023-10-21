@@ -2,7 +2,7 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read,Write};
 use std::sync::Arc;
-use tokio::task;
+use std::thread;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -32,7 +32,7 @@ async fn main() {
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                task::spawn(async move {handle_connection(_stream,_directory).await});
+                thread::spawn(move || {handle_connection(_stream,_directory)});
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -43,7 +43,7 @@ async fn main() {
 
 }
 
-async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
+fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
     let mut buffer: [u8; 128] = [0; 128];
     
     stream.read(&mut buffer).unwrap();
