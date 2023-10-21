@@ -72,7 +72,7 @@ fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
 
     }else if route.starts_with("/files"){
         
-        let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files", "");
+        let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files/", "");
         file_path = format!("{}{}",directory.as_deref().unwrap_or(""), file_path);
         
             let file = std::fs::File::open(file_path);
