@@ -1,5 +1,6 @@
 // Uncomment this block to pass the first stage
 use std::net::{TcpListener, TcpStream};
+use std::path::Path;
 use std::io::{Read,Write};
 use std::sync::Arc;
 use tokio::task;
@@ -28,20 +29,16 @@ async fn main() {
     
     for stream in listener.incoming() {
         let _directory: Arc<Option<String>> = Arc::clone(&directory);
-
-        task::spawn(async{
-        
+      
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                handle_connection(_stream,_directory);
+                task::spawn(async{handle_connection(_stream,_directory)});
             }
             Err(e) => {
                 println!("error: {}", e);
             }
         };
-    });
-
 
     };
 
@@ -75,10 +72,12 @@ fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
         stream.write(response.as_bytes()).unwrap();
 
     }else if route.starts_with("/files"){
+        
         let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files", "");
         file_path = format!("{}{}",directory.as_deref().unwrap(), file_path);
-
-        if let Ok(mut file) = std::fs::File::open(file_path){
+        
+        if Path::new(&file_path).exists(){
+            let mut file: std::fs::File = std::fs::File::open(file_path).unwrap();
 
             let mut content: String = String::new();
             
@@ -90,6 +89,7 @@ fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
         }else{
             stream.write(error_response.as_bytes()).unwrap();
         };
+
     }else{
         match route{
             "/" => stream.write(ok_response.as_bytes()).unwrap(), 
