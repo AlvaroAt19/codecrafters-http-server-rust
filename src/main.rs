@@ -1,6 +1,5 @@
 // Uncomment this block to pass the first stage
 use std::net::{TcpListener, TcpStream};
-use std::path::Path;
 use std::io::{Read,Write};
 use std::sync::Arc;
 use tokio::task;
@@ -33,7 +32,7 @@ async fn main() {
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-                task::spawn(async{handle_connection(_stream,_directory)});
+                task::spawn(async move {handle_connection(_stream,_directory).await});
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -44,7 +43,7 @@ async fn main() {
 
 }
 
-fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
+async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
     let mut buffer: [u8; 128] = [0; 128];
     
     stream.read(&mut buffer).unwrap();
@@ -76,19 +75,20 @@ fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
         let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files", "");
         file_path = format!("{}{}",directory.as_deref().unwrap_or(""), file_path);
         
-        if Path::new(&file_path).exists(){
-            let mut file: std::fs::File = std::fs::File::open(file_path).unwrap();
+            let file = std::fs::File::open(file_path);
 
-            let mut content: String = String::new();
+            match file{
+
+                Ok(mut file) => {let mut content: String = String::new();
             
-            file.read_to_string(&mut content).unwrap();
+                            file.read_to_string(&mut content).unwrap();
 
-            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
-            stream.write(response.as_bytes()).unwrap();
+                            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
+                            stream.write(response.as_bytes()).unwrap();
+                            }
 
-        }else{
-            stream.write(error_response.as_bytes()).unwrap();
-        };
+                Err(_) => {stream.write(error_response.as_bytes()).unwrap();}
+            };
 
     }else{
         match route{
