@@ -95,7 +95,7 @@ async fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>
                 };
 
         },
-        "/" => {stream.write(ok_response.as_bytes()).unwrap();}, 
+        "" => {stream.write(ok_response.as_bytes()).unwrap();}, 
         _ => {stream.write(error_response.as_bytes()).unwrap();}
     };
     
