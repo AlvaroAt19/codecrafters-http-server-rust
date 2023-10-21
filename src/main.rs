@@ -80,7 +80,8 @@ fn handle_connection(mut stream: TcpStream, directory: Arc<Option<String>>) {
             match file{
 
                 Ok(mut file) => {let mut content: String = String::new();
-            
+                            println!("File");
+
                             file.read_to_string(&mut content).unwrap();
 
                             let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
