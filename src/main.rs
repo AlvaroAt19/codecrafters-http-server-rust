@@ -73,14 +73,14 @@ async fn handle_get(mut stream: TcpStream, directory: Arc<Option<String>>, parse
             let words: String = route.replace("/echo/", "");
             let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
 
-            stream.write(response.as_bytes()).unwrap();
+            stream.write_all(response.as_bytes()).unwrap();
         },
     
         "user-agent" =>{
             let user_agent = parsed_vec[2].replace("User-Agent: ", "");
             let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
 
-            stream.write(response.as_bytes()).unwrap();
+            stream.write_all(response.as_bytes()).unwrap();
 
         },
         "files" => {
@@ -99,15 +99,15 @@ async fn handle_get(mut stream: TcpStream, directory: Arc<Option<String>>, parse
                                 file.read_to_string(&mut content).unwrap();
 
                                 let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
-                                stream.write(response.as_bytes()).unwrap();
+                                stream.write_all(response.as_bytes()).unwrap();
                                 }
 
-                    Err(_) => {stream.write(error_response.as_bytes()).unwrap();}
+                    Err(_) => {stream.write_all(error_response.as_bytes()).unwrap();}
                 };
 
         },
-        "" => {stream.write(ok_response.as_bytes()).unwrap();}, 
-        _ => {stream.write(error_response.as_bytes()).unwrap();}
+        "" => {stream.write_all(ok_response.as_bytes()).unwrap();}, 
+        _ => {stream.write_all(error_response.as_bytes()).unwrap();}
     };
 
 }
@@ -128,5 +128,5 @@ async fn handle_post(mut stream: TcpStream, directory: Arc<Option<String>>, pars
     
     file.write_all(content.as_bytes()).unwrap();
 
-    stream.write(response.as_bytes()).unwrap();
+    stream.write_all(response.as_bytes()).unwrap();
 }
