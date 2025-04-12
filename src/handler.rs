@@ -1,4 +1,3 @@
-use clap::builder::Str;
 use tokio::net:: TcpStream;
 use std::io::ErrorKind;
 use crate::request::Request;
@@ -19,23 +18,23 @@ impl Handler{
         let request_vec: Vec<&str> = std::str::from_utf8(&buffer).unwrap()
                                                     .split("\r\n").collect();
 
-        let method: String = request_vec[0].split(" ").collect::<Vec<&str>>()[0].to_string();
+        let method: String = request_vec[0].split(" ").collect::<Vec<&str>>().get(0).unwrap_or(&"GET").to_string();
 
-        let route: String = request_vec[0].split(" ").collect::<Vec<&str>>()[1].to_string();
+        let route: String = request_vec[0].split(" ").collect::<Vec<&str>>().get(0).unwrap_or(&"/").to_string();
 
         let connection: String = request_vec
                     .iter()
                     .filter(|s| s.contains("Connection: "))
-                    .collect::<Vec<&&str>>()[0]
+                    .collect::<Vec<&&str>>().get(0).unwrap_or(&&"Connection: keep-alive")
                     .to_string()
                     .replace("Connection: ", "");
 
-        let content: String = request_vec.last().unwrap().trim_end_matches(char::from(0)).to_string();
+        let content: String = request_vec.last().unwrap_or(&"").trim_end_matches(char::from(0)).to_string();
 
         let user_agent = request_vec
                     .iter()
                     .filter(|s| s.contains("User-Agent: "))
-                    .collect::<Vec<&&str>>()[0]
+                    .collect::<Vec<&&str>>().get(0).unwrap_or(&&"User-Agent: ")
                     .to_string()
                     .replace("User-Agent: ", "");
 
