@@ -157,6 +157,8 @@ async fn handle_post(stream:&TcpStream, directory: &String, parsed_vec: Vec<&str
     
     let response: &str = &format!("HTTP/1.1 201 Created\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",0);
 
+    println!("{:?}", parsed_vec)
+
     let route:&str =  parsed_vec[0].split(" ").collect::<Vec<&str>>()[1];
     let route = route.replace("/files/", "") ;
 
