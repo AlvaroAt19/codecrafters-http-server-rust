@@ -115,7 +115,7 @@ impl Request{
             Ok(_) => {
                 template.replace("-replace1-","201 Created").replace("replace2",   "0")
             },
-            Err(e) => {
+            Err(_) => {
                 template.replace("-replace1-","500 Internal Server Error").replace("replace2",   "0")
             }
         }
