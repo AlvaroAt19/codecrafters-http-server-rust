@@ -90,14 +90,14 @@ async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&
         "echo" => {
 
             let words: String = route.replace("/echo/", "");
-            response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
+            response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\nConnection: keep-alive\r\n\r\n{1}", words.as_bytes().len(), words);
 
         },
     
         "user-agent" =>{
             let user_agent: String = parsed_vec[2].replace("User-Agent: ", "");
             
-            response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
+            response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\nConnection: keep-alive\r\n\r\n{1}", user_agent.as_bytes().len(), user_agent);
 
         },
         "files" => {
@@ -115,7 +115,7 @@ async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&
 
                                 file.read_to_string(&mut content).unwrap();
 
-                                response = format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
+                                response = format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\nConnection: keep-alive\r\n\r\n{1}",content.as_bytes().len(),content);
                                 
                                 }
 
