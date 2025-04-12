@@ -1,6 +1,6 @@
 // Uncomment this block to pass the first stage
-use std::net::{TcpListener, TcpStream};
-use std::io::{Read,Write};
+use tokio::net::{TcpListener, TcpStream};
+use std::io::{Read,Write, ErrorKind};
 use tokio::task;
 use clap::Parser;
 use std::fs::File;
@@ -24,68 +24,86 @@ async fn main() {
 
     // Uncomment this block to pass the first stage
     
-    let listener: TcpListener = TcpListener::bind("127.0.0.1:4221").unwrap();
+    let listener: TcpListener = TcpListener::bind("127.0.0.1:4221").await.unwrap();
     
-    for stream in listener.incoming() {
-        let _directory:Option<String> = directory.clone();
-      
-        match stream {
-            Ok(_stream) => {
+    loop{
+        match listener.accept().await {
+        
+            Ok((stream, _)) => {
+                let _directory:Option<String> = directory.clone();
                 println!("accepted new connection");
-                task::spawn(async move {handle_connection(_stream,_directory).await});
+                task::spawn(async move {handle_connection(stream,_directory).await});
             }
             Err(e) => {
                 println!("error: {}", e);
             }
         };
-
-    };
+    }
 
 }
 
 async fn handle_connection(mut stream: TcpStream, directory: Option<String>) {
-    let mut buffer: [u8; 256] = [0; 256];
     
-    stream.read(&mut buffer).unwrap();
-    
-    let parsed_vec: Vec<&str> = std::str::from_utf8(&buffer).unwrap()
-                                    .split("\r\n").collect();
+    let directory = directory.unwrap_or_default();
+    // Reads the same stream that was passed to the function
+    // and handles the request, until the stream is closed
+    stream.readable().await.unwrap();
+    loop{
+        let mut buffer: [u8; 256] = [0; 256];
 
-    match parsed_vec[0].split(" ").collect::<Vec<&str>>()[0]{
-        "GET" => handle_get(stream, directory, parsed_vec).await,
-        "POST" => handle_post(stream, directory, parsed_vec).await,
-        _ => {}
+        match stream.try_read(&mut buffer) {
+            Ok(0) => {
+                // Client closed the connection
+                break;
+            }
+            Ok(_) =>{
+                let parsed_vec: Vec<&str> = std::str::from_utf8(&buffer).unwrap()
+                                                .split("\r\n").collect();
+                
+                match parsed_vec[0].split(" ").collect::<Vec<&str>>()[0]{
+                    "GET" => handle_get(&stream, &directory, parsed_vec).await,
+                    "POST" => handle_post(&stream, &directory, parsed_vec).await,
+                    _ => {}
+                }
+            }
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                continue;
+            }
+            Err(e) => {
+                println!("error: {}", e);
+                break;
+            }
+        }
     }
-    
 }
 
-async fn handle_get(mut stream: TcpStream, directory: Option<String>, parsed_vec: Vec<&str>){
+async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
     
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
 
     let ok_response: &str = "HTTP/1.1 200 OK\r\n\r\n";
     let error_response: &str = "HTTP/1.1 404 Not Found\r\n\r\n";
 
+    let mut response: String; 
+
     match route.split("/").collect::<Vec<&str>>()[1]{
         "echo" => {
 
             let words: String = route.replace("/echo/", "");
-            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
+            response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", words.len(), words);
 
-            stream.write_all(response.as_bytes()).unwrap();
         },
     
         "user-agent" =>{
-            let user_agent = parsed_vec[2].replace("User-Agent: ", "");
-            let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
-
-            stream.write_all(response.as_bytes()).unwrap();
+            let user_agent: String = parsed_vec[2].replace("User-Agent: ", "");
+            
+            response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\n\r\n{1}\r\n", user_agent.len(), user_agent);
 
         },
         "files" => {
         
             let mut file_path: String = parsed_vec[0].split(" ").collect::<Vec<&str>>()[1].replace("/files/", "");
-            file_path = format!("{}{}",directory.unwrap(), file_path);
+            file_path = format!("{}{}",directory, file_path);
             
                 let file = File::open(file_path);
 
@@ -97,28 +115,42 @@ async fn handle_get(mut stream: TcpStream, directory: Option<String>, parsed_vec
 
                                 file.read_to_string(&mut content).unwrap();
 
-                                let response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
-                                stream.write_all(response.as_bytes()).unwrap();
+                                response = format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {0}\r\n\r\n{1}\r\n",content.len(),content);
+                                
                                 }
 
-                    Err(_) => {stream.write_all(error_response.as_bytes()).unwrap();}
+                    Err(_) => {response = error_response.to_string();},
                 };
 
         },
-        "" => {stream.write_all(ok_response.as_bytes()).unwrap();}, 
-        _ => {stream.write_all(error_response.as_bytes()).unwrap();}
+        "" => {response = ok_response.to_string();}, 
+        _ => {response = error_response.to_string();},
+
     };
+
+    loop{
+        match stream.try_write(response.as_bytes()) {
+            Ok(_) => break,
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                continue;
+            }
+            Err(e) => {
+                println!("error: {}", e);
+                break;
+            }
+        }
+    }
 
 }
 
-async fn handle_post(mut stream: TcpStream, directory: Option<String>, parsed_vec: Vec<&str>){
+async fn handle_post(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
     
     let response: &str = "HTTP/1.1 201 Created\r\n\r\n";
 
     let route:&str =  parsed_vec[0].split(" ").collect::<Vec<&str>>()[1];
     let route = route.replace("/files/", "") ;
 
-    let file_path = format!("{}{}",directory.unwrap(), route);
+    let file_path = format!("{}{}",directory, route);
 
 
     let content = parsed_vec[6].trim_end_matches(char::from(0));
@@ -127,5 +159,17 @@ async fn handle_post(mut stream: TcpStream, directory: Option<String>, parsed_ve
     
     file.write_all(content.as_bytes()).unwrap();
 
-    stream.write_all(response.as_bytes()).unwrap();
+    loop{
+        match stream.try_write(response.as_bytes()) {
+            Ok(_) => break,
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                continue;
+            }
+            Err(e) => {
+                println!("error: {}", e);
+                break;
+            }
+        }
+    }
+
 }
