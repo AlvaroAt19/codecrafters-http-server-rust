@@ -80,7 +80,6 @@ async fn handle_connection(mut stream: TcpStream, directory: Option<String>) {
 async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
     
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
-    println!("{:?}", parsed_vec);
 
     let ok_response: &str = "HTTP/1.1 200 OK\r\n\r\n";
     let error_response: &str = "HTTP/1.1 404 Not Found\r\n\r\n";
