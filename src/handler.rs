@@ -20,7 +20,7 @@ impl Handler{
 
         let method: String = request_vec[0].split(" ").collect::<Vec<&str>>().get(0).unwrap_or(&"GET").to_string();
 
-        let route: String = request_vec[0].split(" ").collect::<Vec<&str>>().get(0).unwrap_or(&"/").to_string();
+        let route: String = request_vec[0].split(" ").collect::<Vec<&str>>().get(1).unwrap_or(&"/").to_string();
 
         let connection: String = request_vec
                     .iter()
