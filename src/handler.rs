@@ -78,6 +78,10 @@ impl Handler{
                             }
                         }
                     }
+
+                    if parsed_vec[0].contains("close") {
+                        break;
+                    };
                 }
                 
                 Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
