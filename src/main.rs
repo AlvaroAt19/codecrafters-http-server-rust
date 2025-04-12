@@ -47,8 +47,10 @@ async fn handle_connection(stream:TcpStream, directory: Option<String>) {
     let directory = directory.unwrap_or_default();
     // Reads the same stream that was passed to the function
     // and handles the request, until the stream is closed
-    stream.readable().await.unwrap();
     loop{
+        
+        stream.readable().await.unwrap();
+
         let mut buffer: [u8; 512] = [0; 512];
 
         match stream.try_read(&mut buffer) {
@@ -80,7 +82,6 @@ async fn handle_connection(stream:TcpStream, directory: Option<String>) {
 async fn handle_get(stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
     
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
-    println!("{:?}", parsed_vec);
 
     let ok_response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",0); 
     let error_response: &str = &format!("HTTP/1.1 404 Not Found\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",0);
