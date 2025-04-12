@@ -82,8 +82,8 @@ async fn handle_get(stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
     println!("{:?}", parsed_vec);
 
-    let ok_response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n{}",0,""); 
-    let error_response: &str = &format!("HTTP/1.1 404 Not Found\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n{}",0,"");
+    let ok_response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",0); 
+    let error_response: &str = &format!("HTTP/1.1 404 Not Found\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",0);
 
     let response: String; 
 
