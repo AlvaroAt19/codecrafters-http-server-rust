@@ -36,7 +36,7 @@ impl Request{
 
         let response:String = match self.route.as_str(){
             
-            "/echo" => {
+            s if s.starts_with("/echo") => {
 
                 let words: String = self.route.replace("/echo/", "");
                 template
@@ -44,17 +44,8 @@ impl Request{
                     .replace("-replace2-", &words.as_bytes().len().to_string()) + &words
                     
             },
-        
-            "/user-agent" =>{
-                // Searching for the User-Agent header in the request
-                // and returning it in the response
-                template
-                    .replace("-replace1-","200 OK\r\nContent-Type: text/plain")
-                    .replace("-replace2-", &self.user_agent.as_bytes().len().to_string()) + &self.user_agent
 
-
-            },
-            "/files" => {
+            s if s.starts_with("/files") => {
             
                 let file_path = format!("{}{}",directory, self.route.replace("/files/", ""));
                 
@@ -80,6 +71,17 @@ impl Request{
                         .replace("-replace2-", "0")
                     },
                 }
+
+            },
+
+                    
+            "/user-agent" =>{
+                // Searching for the User-Agent header in the request
+                // and returning it in the response
+                template
+                    .replace("-replace1-","200 OK\r\nContent-Type: text/plain")
+                    .replace("-replace2-", &self.user_agent.as_bytes().len().to_string()) + &self.user_agent
+
 
             },
 
