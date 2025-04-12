@@ -42,8 +42,8 @@ async fn main() {
 
 }
 
-async fn handle_connection(mut stream: TcpStream, directory: Option<String>) {
-    
+async fn handle_connection(stream:TcpStream, directory: Option<String>) {
+     
     let directory = directory.unwrap_or_default();
     // Reads the same stream that was passed to the function
     // and handles the request, until the stream is closed
@@ -77,14 +77,15 @@ async fn handle_connection(mut stream: TcpStream, directory: Option<String>) {
     }
 }
 
-async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
+async fn handle_get(stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
     
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
+    println!("{:?}", parsed_vec);
 
-    let ok_response: &str = "HTTP/1.1 200 OK\r\n\r\n";
-    let error_response: &str = "HTTP/1.1 404 Not Found\r\n\r\n";
+    let ok_response: &str = &format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n{}",0,""); 
+    let error_response: &str = &format!("HTTP/1.1 404 Not Found\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n{}",0,"");
 
-    let mut response: String; 
+    let response: String; 
 
     match route.split("/").collect::<Vec<&str>>()[1]{
         "echo" => {
@@ -135,6 +136,7 @@ async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&
 
     };
 
+
     loop{
         match stream.try_write(response.as_bytes()) {
             Ok(_) => break,
@@ -150,7 +152,7 @@ async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&
 
 }
 
-async fn handle_post(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
+async fn handle_post(stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
     
     let response: &str = "HTTP/1.1 201 Created\r\n\r\n";
 
