@@ -49,7 +49,7 @@ async fn handle_connection(mut stream: TcpStream, directory: Option<String>) {
     // and handles the request, until the stream is closed
     stream.readable().await.unwrap();
     loop{
-        let mut buffer: [u8; 256] = [0; 256];
+        let mut buffer: [u8; 512] = [0; 512];
 
         match stream.try_read(&mut buffer) {
             Ok(0) => {
@@ -80,6 +80,7 @@ async fn handle_connection(mut stream: TcpStream, directory: Option<String>) {
 async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&str>){
     
     let route: &str = parsed_vec[0].split_whitespace().collect::<Vec<&str>>()[1];
+    println!("{:?}", parsed_vec);
 
     let ok_response: &str = "HTTP/1.1 200 OK\r\n\r\n";
     let error_response: &str = "HTTP/1.1 404 Not Found\r\n\r\n";
@@ -95,7 +96,14 @@ async fn handle_get(mut stream:&TcpStream, directory: &String, parsed_vec: Vec<&
         },
     
         "user-agent" =>{
-            let user_agent: String = parsed_vec[2].replace("User-Agent: ", "");
+            // Searching for the User-Agent header in the request
+            // and returning it in the response
+            let user_agent = parsed_vec
+                    .iter()
+                    .filter(|s| s.contains("User-Agent: "))
+                    .collect::<Vec<&&str>>()[0]
+                    .to_string()
+                    .replace("User-Agent: ", "");
             
             response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {0}\r\nConnection: keep-alive\r\n\r\n{1}", user_agent.as_bytes().len(), user_agent);
 
