@@ -91,7 +91,7 @@ impl Request{
         };
 
 
-        match self.encoding.as_str(){
+        match self.find_encoding(){
             "gzip" => {
                 replace1 = format!("{}\r\nContent-Encoding: gzip", replace1);
             },
@@ -132,4 +132,24 @@ impl Request{
     fn response_template(&self) -> String{
         format!("HTTP/1.1 -replace1-\r\nContent-Length: -replace2-\r\nConnection: {}\r\n\r\n", self.connection)
     }
+
+    fn find_encoding(&self) -> &str{
+        
+        let client_encodings : Vec<&str> = self.encoding
+        .split(",") 
+        .collect();
+        
+        let server_encodings: Vec<&str> = vec!["gzip", "deflate"];
+
+        for encoding in client_encodings.iter(){
+            
+            if server_encodings.contains(encoding){
+                return encoding;
+            }
+
+        }
+
+        return "invalid";
+    }
+    
 }

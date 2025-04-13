@@ -45,7 +45,6 @@ impl Handler{
                     .to_string()
                     .replace("Accept-Encoding: ", "");
 
-        
         vec![connection, route, content, method, user_agent, encoding]
     }   
     
