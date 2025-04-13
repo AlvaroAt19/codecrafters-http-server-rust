@@ -136,7 +136,8 @@ impl Request{
     fn find_encoding(&self) -> &str{
         
         let client_encodings : Vec<&str> = self.encoding
-        .split(",") 
+        .split(",")
+        .map(| s| s.trim()) 
         .collect();
         
         let server_encodings: Vec<&str> = vec!["gzip", "deflate"];
