@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::{Read,Write};
+use flate2::Compression;
+use flate2::write::GzEncoder;
 
 
 pub struct Request{
@@ -16,7 +18,7 @@ impl Request{
         Request { connection, route, content, method, user_agent, encoding }
     }
 
-    pub fn run(&self, directory:&String) -> String{
+    pub fn run(&self, directory:&String) -> Vec<u8>{
         
         match self.method.as_str(){
             "GET" => self.get(directory),
@@ -26,12 +28,12 @@ impl Request{
                     Allow: GET, POST\r\n\
                     Content-Length: 20\r\n\
                     \r\n\
-                    Method Not Allowed".to_string(),
+                    Method Not Allowed".to_string().into_bytes(),
         }
 
     }
 
-    fn get(&self, directory:&String) -> String{
+    fn get(&self, directory:&String) -> Vec<u8>{
 
         let template: String = self.response_template();
         
@@ -94,21 +96,33 @@ impl Request{
         match self.find_encoding(){
             "gzip" => {
                 replace1 = format!("{}\r\nContent-Encoding: gzip", replace1);
+                
+                let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+                // Escreve os dados comprimidos no GzEncoder
+                encoder.write_all(body.as_bytes()).unwrap();
+                // Finaliza a compressão e escreve o resultado
+                let encoded = encoder.finish().unwrap_or(Vec::new());
+
+                [template
+                    .replace("-replace1-", &replace1)
+                    .replace("-replace2-", &encoded.len().to_string())
+                    .into_bytes()
+                    ,encoded].concat()
             },
-            "deflate" => {
-                replace1 = format!("{}\r\nContent-Encoding: deflate", replace1);
-            },
-            _ => {}
+            _ => {
+
+                (template
+                    .replace("-replace1-", &replace1)
+                    .replace("-replace2-", &body.len().to_string())
+                    + body.as_str())
+                    .into_bytes()
+            }
         }
 
-        template
-            .replace("-replace1-", &replace1)
-            .replace("-replace2-", &body.len().to_string())
-            + body.as_str()
 
     }
 
-    fn post(&self, directory:&String) -> String{
+    fn post(&self, directory:&String) -> Vec<u8>{
 
         let template = self.response_template();
 
@@ -120,10 +134,10 @@ impl Request{
 
         match file.write_all(self.content.as_bytes()){
             Ok(_) => {
-                template.replace("-replace1-","201 Created").replace("replace2",   "0")
+                template.replace("-replace1-","201 Created").replace("replace2",   "0").into_bytes()
             },
             Err(_) => {
-                template.replace("-replace1-","500 Internal Server Error").replace("replace2",   "0")
+                template.replace("-replace1-","500 Internal Server Error").replace("replace2",   "0").into_bytes()
             }
         }
 

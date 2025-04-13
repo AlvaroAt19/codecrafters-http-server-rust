@@ -67,11 +67,11 @@ impl Handler{
                     
                     let parsed_vec: Vec<String> = Self::parse(buffer);
 
-                    let response: String = Request::new(parsed_vec[0].clone(), parsed_vec[1].clone(), parsed_vec[2].clone(), parsed_vec[3].clone(), parsed_vec[4].clone(), parsed_vec[5].clone())
+                    let response: Vec<u8> = Request::new(parsed_vec[0].clone(), parsed_vec[1].clone(), parsed_vec[2].clone(), parsed_vec[3].clone(), parsed_vec[4].clone(), parsed_vec[5].clone())
                                             .run(&directory);
                     
                     loop{
-                        match self.stream.try_write(response.as_bytes()) {
+                        match self.stream.try_write(&response) {
                             Ok(_) => break,
                             Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
                                 continue;
