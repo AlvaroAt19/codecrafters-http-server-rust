@@ -8,11 +8,12 @@ pub struct Request{
     content: String,
     method: String,
     user_agent: String,
+    encoding: String,
 }
 
 impl Request{
-    pub fn new(connection: String, route: String, content: String,  method: String, user_agent:String) -> Self {
-        Request { connection, route, content, method, user_agent }
+    pub fn new(connection: String, route: String, content: String,  method: String, user_agent:String, encoding:String) -> Self {
+        Request { connection, route, content, method, user_agent, encoding }
     }
 
     pub fn run(&self, directory:&String) -> String{
@@ -33,17 +34,19 @@ impl Request{
     fn get(&self, directory:&String) -> String{
 
         let template: String = self.response_template();
+        
+        let mut replace1:String;
+        let mut body:String = String::new();
 
-        let response:String = match self.route.as_str(){
+        match self.route.as_str(){
             
             s if s.starts_with("/echo") => {
 
-                let words: String = self.route.replace("/echo/", "");
-                template
-                    .replace("-replace1-","200 OK\r\nContent-Type: text/plain")
-                    .replace("-replace2-", &words.as_bytes().len().to_string()) + &words
-                    
-            },
+                body = self.route.replace("/echo/", "");
+                
+                replace1 = "200 OK\r\nContent-Type: text/plain".to_string(); 
+
+            }
 
             s if s.starts_with("/files") => {
             
@@ -54,21 +57,16 @@ impl Request{
                 match file{
 
                     Ok(mut file) => {
-                                
-                                let mut content: String = String::new();
 
-                                file.read_to_string(&mut content).unwrap();
+                        file.read_to_string(&mut body).unwrap();
 
-                                template
-                                .replace("-replace1-","200 OK\r\nContent-Type: application/octet-stream")
-                                .replace("-replace2-", &content.as_bytes().len().to_string()) + &content
+                        replace1 = "200 OK\r\nContent-Type: application/octet-stream".to_string() ;
 
-                                }
+                        }
 
                     Err(_) => {
-                        template
-                        .replace("-replace1-","404 Not Found")
-                        .replace("-replace2-", "0")
+                        replace1 = "404 Not Found".to_string();
+
                     },
                 }
 
@@ -78,27 +76,36 @@ impl Request{
             "/user-agent" =>{
                 // Searching for the User-Agent header in the request
                 // and returning it in the response
-                template
-                    .replace("-replace1-","200 OK\r\nContent-Type: text/plain")
-                    .replace("-replace2-", &self.user_agent.as_bytes().len().to_string()) + &self.user_agent
-
-
+                replace1 = "200 OK\r\nContent-Type: text/plain".to_string();
+                body = self.user_agent.clone();
+                    
             },
 
             "/" => {
-                template
-                .replace("-replace1-","200 OK")
-                .replace("-replace2-", "0")
+                replace1 = "200 OK".to_string();
 
             }, 
             _ => {
-                template
-                .replace("-replace1-","404 Not Found")
-                .replace("-replace2-", "0")
+                replace1 = "404 Not Found".to_string();
             },
         };
 
-        response
+
+        match self.encoding.as_str(){
+            "gzip" => {
+                replace1 = format!("{}\r\nContent-Encoding: gzip", replace1);
+            },
+            "deflate" => {
+                replace1 = format!("{}\r\nContent-Encoding: deflate", replace1);
+            },
+            _ => {}
+        }
+
+        template
+            .replace("-replace1-", &replace1)
+            .replace("-replace2-", &body.len().to_string())
+            + body.as_str()
+
     }
 
     fn post(&self, directory:&String) -> String{

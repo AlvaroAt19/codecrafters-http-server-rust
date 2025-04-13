@@ -31,17 +31,22 @@ impl Handler{
 
         let content: String = request_vec.last().unwrap_or(&"").trim_end_matches(char::from(0)).to_string();
 
-        let user_agent = request_vec
+        let user_agent: String = request_vec
                     .iter()
                     .filter(|s| s.contains("User-Agent: "))
                     .collect::<Vec<&&str>>().get(0).unwrap_or(&&"User-Agent: ")
                     .to_string()
                     .replace("User-Agent: ", "");
 
-
+        let encoding: String = request_vec
+                    .iter()
+                    .filter(|s| s.contains("Accept-Encoding: "))
+                    .collect::<Vec<&&str>>().get(0).unwrap_or(&&"Accept-Encoding: ")
+                    .to_string()
+                    .replace("Accept-Encoding: ", "");
 
         
-        vec![connection, route, content, method, user_agent]
+        vec![connection, route, content, method, user_agent, encoding]
     }   
     
     pub async fn handle(&self) {
@@ -63,7 +68,7 @@ impl Handler{
                     
                     let parsed_vec: Vec<String> = Self::parse(buffer);
 
-                    let response: String = Request::new(parsed_vec[0].clone(), parsed_vec[1].clone(), parsed_vec[2].clone(), parsed_vec[3].clone(), parsed_vec[4].clone())
+                    let response: String = Request::new(parsed_vec[0].clone(), parsed_vec[1].clone(), parsed_vec[2].clone(), parsed_vec[3].clone(), parsed_vec[4].clone(), parsed_vec[5].clone())
                                             .run(&directory);
                     
                     loop{
